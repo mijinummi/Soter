@@ -8,19 +8,16 @@ export const WalletConnect: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { publicKey, setPublicKey, disconnect } = useWalletStore();
-  const [freighterInstalled, setFreighterInstalled] = useState(true); // Assume installed until proven otherwise
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     async function checkFreighterAvailability() {
       // Check if Freighter API is available
-      if (typeof window === "undefined" || !(window as any).FreighterApi) {
-        setFreighterInstalled(false);
+      const windowWithFreighter = window as Window & { FreighterApi?: unknown };
+      if (typeof window === "undefined" || !windowWithFreighter.FreighterApi) {
         console.warn("Freighter is not installed or available in the browser.");
         return;
-      } else {
-        setFreighterInstalled(true);
       }
 
       console.log("Checking Freighter connection...");
