@@ -3,4 +3,5 @@ export type RootStackParamList = {
   Health: undefined;
   AidOverview: undefined;
   AidDetails: { aidId: string };
+  Settings: undefined;
 };

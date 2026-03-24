@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { WalletProvider } from './src/contexts/WalletContext';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { BiometricProvider } from './src/contexts/BiometricContext';
 
 const linking = {
   prefixes: [ExpoLinking.createURL('/'), 'soter://'],
@@ -16,10 +17,12 @@ const AppInner = () => {
   const { navTheme, scheme } = useTheme();
   return (
     <WalletProvider>
-      <NavigationContainer linking={linking}>
-        <AppNavigator />
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      </NavigationContainer>
+      <BiometricProvider>
+        <NavigationContainer linking={linking}>
+          <AppNavigator />
+          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        </NavigationContainer>
+      </BiometricProvider>
     </WalletProvider>
   );
 };

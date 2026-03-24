@@ -23,6 +23,7 @@ interface Props {
   navigation: HomeScreenNavigationProp;
 }
 
+
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const {
     connectWallet,
@@ -81,6 +82,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>Soter</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Powered by Stellar</Text>
@@ -240,6 +250,15 @@ const makeStyles = (colors: AppColors) =>
     header: {
       alignItems: 'center',
       marginBottom: 40,
+    },
+    settingsButton: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      padding: 8,
+    },
+    settingsIcon: {
+      fontSize: 22,
     },
     title: {
       fontSize: 48,
