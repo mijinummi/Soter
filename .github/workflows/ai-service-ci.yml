@@ -34,9 +34,6 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
-        cache-dependency-path: |
-          app/ai-service/requirements.txt
-          app/ai-service/requirements-prod.txt
           
     - name: Install dependencies
       working-directory: ./app/ai-service
@@ -87,9 +84,6 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
-        cache-dependency-path: |
-          app/ai-service/requirements.txt
-          app/ai-service/requirements-prod.txt
           
     - name: Install dependencies
       working-directory: ./app/ai-service
@@ -128,6 +122,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
         
     - name: Install dependencies
       working-directory: ./app/ai-service
@@ -194,6 +189,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
         
     - name: Install safety and bandit
       run: |
