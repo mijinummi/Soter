@@ -141,19 +141,17 @@ describe('ClaimsService', () => {
         .mockResolvedValue(mockClaim);
       jest
         .spyOn(prismaService, '$transaction')
-        .mockImplementation(
-          async (callback: (tx: any) => Promise<unknown>) => {
-            await Promise.resolve();
-            return callback({
-              claim: {
-                update: jest.fn().mockResolvedValue({
-                  ...mockClaim,
-                  status: ClaimStatus.disbursed,
-                }),
-              },
-            });
-          },
-        );
+        .mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
+          await Promise.resolve();
+          return callback({
+            claim: {
+              update: jest.fn().mockResolvedValue({
+                ...mockClaim,
+                status: ClaimStatus.disbursed,
+              }),
+            },
+          });
+        });
 
       await service.disburse('claim-123');
 
@@ -172,19 +170,17 @@ describe('ClaimsService', () => {
         .mockResolvedValue(mockClaim);
       jest
         .spyOn(prismaService, '$transaction')
-        .mockImplementation(
-          async (callback: (tx: any) => Promise<unknown>) => {
-            await Promise.resolve();
-            return callback({
-              claim: {
-                update: jest.fn().mockResolvedValue({
-                  ...mockClaim,
-                  status: ClaimStatus.disbursed,
-                }),
-              },
-            });
-          },
-        );
+        .mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
+          await Promise.resolve();
+          return callback({
+            claim: {
+              update: jest.fn().mockResolvedValue({
+                ...mockClaim,
+                status: ClaimStatus.disbursed,
+              }),
+            },
+          });
+        });
 
       await service.disburse('claim-123');
 
@@ -206,19 +202,17 @@ describe('ClaimsService', () => {
         .mockResolvedValue(mockClaim);
       jest
         .spyOn(prismaService, '$transaction')
-        .mockImplementation(
-          async (callback: (tx: any) => Promise<unknown>) => {
-            await Promise.resolve();
-            return callback({
-              claim: {
-                update: jest.fn().mockResolvedValue({
-                  ...mockClaim,
-                  status: ClaimStatus.disbursed,
-                }),
-              },
-            });
-          },
-        );
+        .mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
+          await Promise.resolve();
+          return callback({
+            claim: {
+              update: jest.fn().mockResolvedValue({
+                ...mockClaim,
+                status: ClaimStatus.disbursed,
+              }),
+            },
+          });
+        });
 
       await service.disburse('claim-123');
 
@@ -333,19 +327,17 @@ describe('ClaimsService', () => {
         .mockResolvedValue(mockClaim);
       const transactionSpy = jest
         .spyOn(prismaService, '$transaction')
-        .mockImplementation(
-          async (callback: (tx: any) => Promise<unknown>) => {
-            await Promise.resolve();
-            return callback({
-              claim: {
-                update: jest.fn().mockResolvedValue({
-                  ...mockClaim,
-                  status: ClaimStatus.disbursed,
-                }),
-              },
-            });
-          },
-        );
+        .mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
+          await Promise.resolve();
+          return callback({
+            claim: {
+              update: jest.fn().mockResolvedValue({
+                ...mockClaim,
+                status: ClaimStatus.disbursed,
+              }),
+            },
+          });
+        });
 
       await service.disburse('claim-123');
 

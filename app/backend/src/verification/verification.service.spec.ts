@@ -27,7 +27,7 @@ describe('VerificationService', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     campaignId: 'test-campaign-id',
-    amount: new Prisma.Decimal(100.00),
+    amount: new Prisma.Decimal(100.0),
     recipientRef: 'test-recipient',
     evidenceRef: 'test-evidence',
     verificationResult: null,
