@@ -987,6 +987,22 @@ impl AidEscrow {
             total_expired_cancelled,
         }
     }
+}
+
+// --- Tests ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use soroban_sdk::testutils::{Address as _, MockAuth, MockAuthInvoke};
+    use soroban_sdk::{testutils::Ledger, Env};
+
+    fn setup() -> (Env, AidEscrowClient<'static>) {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, AidEscrow);
+        let client = AidEscrowClient::new(&env, &contract_id);
+        (env, client)
+    }
 
     #[test]
     fn test_cancel_package() {
@@ -995,8 +1011,8 @@ impl AidEscrow {
         let recipient = Address::generate(&env);
         let token = Address::generate(&env);
 
-        client.initialize(&admin);
         env.mock_all_auths();
+        client.initialize(&admin);
 
         let package_id = client.create_package(&recipient, &1000, &token, &86400);
         client.cancel_package(&package_id);
