@@ -157,7 +157,7 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, docker-build]
     
     steps:
     - name: Checkout code
