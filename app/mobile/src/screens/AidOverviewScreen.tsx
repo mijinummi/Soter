@@ -18,6 +18,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { useTheme } from '../theme/ThemeContext';
 import { AppColors } from '../theme/useAppTheme';
+import { useSync } from '../contexts/SyncContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AidOverview'>;
 
@@ -38,6 +39,7 @@ export const AidOverviewScreen: React.FC<Props> = ({ navigation }) => {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { pendingCount, failedCount, isSyncing: isQueueSyncing } = useSync();
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -117,14 +119,34 @@ export const AidOverviewScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <OfflineBanner visible={!isConnected} cachedAt={cachedAt} />
+      <OfflineBanner visible={!isConnected} cachedAt={cachedAt} pendingCount={pendingCount} />
 
-      {syncing && (
+      {(syncing || isQueueSyncing) && (
         <View style={styles.syncBanner}>
           <ActivityIndicator size="small" color={colors.brand.primary} />
-          <Text style={styles.syncText}>Syncing latest data...</Text>
+          <Text style={styles.syncText}>
+            {pendingCount > 0
+              ? `Syncing ${pendingCount} pending action${pendingCount === 1 ? '' : 's'}...`
+              : 'Syncing latest data...'}
+          </Text>
         </View>
       )}
+
+      {pendingCount > 0 && isConnected && !isQueueSyncing ? (
+        <View style={styles.queueBanner}>
+          <Text style={styles.queueText}>
+            {pendingCount} action{pendingCount === 1 ? '' : 's'} queued for retry.
+          </Text>
+        </View>
+      ) : null}
+
+      {failedCount > 0 ? (
+        <View style={styles.failedBanner}>
+          <Text style={styles.failedText}>
+            {failedCount} sync action{failedCount === 1 ? '' : 's'} need attention.
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.searchContainer}>
         <TextInput
@@ -152,7 +174,7 @@ export const AidOverviewScreen: React.FC<Props> = ({ navigation }) => {
           isCached && isConnected ? (
             <View style={styles.staleNotice}>
               <Text style={styles.staleText}>
-                ⚠️ Showing cached data. Pull to refresh.
+                Showing cached data. Pull to refresh.
               </Text>
             </View>
           ) : null
@@ -267,6 +289,26 @@ const makeStyles = (colors: AppColors) =>
     staleText: {
       fontSize: 13,
       color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    queueBanner: {
+      backgroundColor: colors.infoBg,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    queueText: {
+      fontSize: 13,
+      color: colors.info,
+      textAlign: 'center',
+    },
+    failedBanner: {
+      backgroundColor: colors.warningBg,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    failedText: {
+      fontSize: 13,
+      color: colors.warning,
       textAlign: 'center',
     },
     emptyText: {

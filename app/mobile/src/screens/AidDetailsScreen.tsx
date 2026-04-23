@@ -18,6 +18,7 @@ import {
   fetchAidDetails,
   getMockAidDetails,
 } from '../services/aidApi';
+import { useSync } from '../contexts/SyncContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AidDetails'>;
 
@@ -32,8 +33,26 @@ export const AidDetailsScreen: React.FC<Props> = ({ route }) => {
   const [details, setDetails] = useState<AidDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const {
+    getActionsForAid,
+    isConnected,
+    isSyncing,
+    lastCompletedAction,
+    queueClaimConfirmation,
+    queueStatusRefresh,
+  } = useSync();
+  const pendingActions = getActionsForAid(aidId);
+  const hasPendingRefresh = pendingActions.some(
+    (item) => item.type === 'status-refresh' && item.state !== 'failed',
+  );
+  const hasPendingConfirmation = pendingActions.some(
+    (item) => item.type === 'claim-confirmation' && item.state !== 'failed',
+  );
+  const failedActions = pendingActions.filter((item) => item.state === 'failed');
 
   const requestAuth = useCallback(async () => {
     if (!biometricEnabled) {
@@ -78,11 +97,87 @@ export const AidDetailsScreen: React.FC<Props> = ({ route }) => {
     }
   }, [authState, loadDetails]);
 
+  useEffect(() => {
+    if (!lastCompletedAction) {
+      return;
+    }
+
+    const payload = lastCompletedAction.action.payload as { aidId?: string };
+    if (payload.aidId !== aidId) {
+      return;
+    }
+
+    if (lastCompletedAction.action.type === 'status-refresh') {
+      setDetails(lastCompletedAction.result as AidDetails);
+      setError(null);
+      setSyncMessage('Status refreshed after reconnecting.');
+      setLastUpdated(lastCompletedAction.completedAt);
+      return;
+    }
+
+    if (lastCompletedAction.action.type === 'claim-confirmation') {
+      setSyncMessage('Claim confirmation synced successfully.');
+      void loadDetails(false);
+    }
+  }, [aidId, lastCompletedAction, loadDetails]);
+
+  const handleRefreshStatus = useCallback(async () => {
+    setRefreshing(true);
+
+    try {
+      const result = await queueStatusRefresh(aidId);
+
+      if (result.status === 'completed') {
+        setDetails(result.result);
+        setError(null);
+        setSyncMessage('Status is up to date.');
+        setLastUpdated(new Date().toISOString());
+      } else {
+        setSyncMessage(
+          isConnected
+            ? 'Refresh queued. We will retry automatically if the network stays unstable.'
+            : 'Refresh queued. It will sync automatically when connectivity returns.',
+        );
+      }
+    } catch {
+      setError('Status refresh failed. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [aidId, isConnected, queueStatusRefresh]);
+
+  const handleConfirmClaim = useCallback(async () => {
+    if (!details) {
+      return;
+    }
+
+    setConfirming(true);
+
+    try {
+      const result = await queueClaimConfirmation(aidId, details.claimId);
+
+      if (result.status === 'completed') {
+        setSyncMessage('Claim confirmation submitted.');
+        await loadDetails(false);
+      } else {
+        setSyncMessage(
+          isConnected
+            ? 'Claim confirmation queued for automatic retry.'
+            : 'Claim confirmation saved offline and will sync when connectivity returns.',
+        );
+      }
+    } catch {
+      setError('Claim confirmation failed. Please try again.');
+    } finally {
+      setConfirming(false);
+    }
+  }, [aidId, details, isConnected, loadDetails, queueClaimConfirmation]);
+
   if (authState === 'idle' || authState === 'pending') {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.brand.primary} />
-        <Text style={styles.subtitle}>Verifying identity…</Text>
+        <Text style={styles.subtitle}>Verifying identity...</Text>
       </View>
     );
   }
@@ -90,7 +185,7 @@ export const AidDetailsScreen: React.FC<Props> = ({ route }) => {
   if (authState === 'denied') {
     return (
       <View style={styles.centered}>
-        <Text style={styles.lockIcon}>🔒</Text>
+        <Text style={styles.lockIcon}>Locked</Text>
         <Text style={styles.title}>Authentication Required</Text>
         <Text style={styles.subtitle}>
           Biometric verification is needed to view this screen.
@@ -144,6 +239,32 @@ export const AidDetailsScreen: React.FC<Props> = ({ route }) => {
         </View>
       ) : null}
 
+      {syncMessage ? (
+        <View style={styles.syncNotice}>
+          <Text style={styles.syncNoticeText}>{syncMessage}</Text>
+        </View>
+      ) : null}
+
+      {pendingActions.length > 0 ? (
+        <View style={styles.syncCard}>
+          <Text style={styles.sectionTitle}>Sync Status</Text>
+          <Text style={styles.syncCardText}>
+            {pendingActions.length} pending action{pendingActions.length === 1 ? '' : 's'}
+            {isSyncing ? ' are syncing now.' : ' saved locally.'}
+          </Text>
+          {!isConnected ? (
+            <Text style={styles.syncCardMeta}>
+              They will retry automatically when the device reconnects.
+            </Text>
+          ) : null}
+          {failedActions.length > 0 ? (
+            <Text style={styles.syncCardMeta}>
+              {failedActions.length} action{failedActions.length === 1 ? '' : 's'} reached the retry limit.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recipient</Text>
         <View style={styles.card}>
@@ -182,14 +303,36 @@ export const AidDetailsScreen: React.FC<Props> = ({ route }) => {
           { backgroundColor: colors.brand.primary },
           refreshing ? styles.buttonDisabled : null,
         ]}
-        onPress={() => loadDetails(true)}
-        disabled={refreshing}
+        onPress={handleRefreshStatus}
+        disabled={refreshing || hasPendingRefresh}
         activeOpacity={0.8}
       >
         {refreshing ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
-          <Text style={styles.buttonText}>Refresh Status</Text>
+          <Text style={styles.buttonText}>
+            {hasPendingRefresh ? 'Refresh Queued' : 'Refresh Status'}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        style={[
+          styles.button,
+          styles.secondaryButton,
+          confirming || hasPendingConfirmation ? styles.buttonDisabled : null,
+        ]}
+        onPress={handleConfirmClaim}
+        disabled={confirming || hasPendingConfirmation}
+        activeOpacity={0.8}
+      >
+        {confirming ? (
+          <ActivityIndicator size="small" color={colors.brand.primary} />
+        ) : (
+          <Text style={styles.secondaryButtonText}>
+            {hasPendingConfirmation ? 'Claim Confirmation Queued' : 'Confirm Claim'}
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -444,6 +587,33 @@ const makeStyles = (colors: AppColors) =>
       color: colors.textSecondary,
       fontSize: 13,
     },
+    syncNotice: {
+      backgroundColor: colors.infoBg,
+      borderRadius: 10,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.info,
+    },
+    syncNoticeText: {
+      color: colors.info,
+      fontSize: 13,
+    },
+    syncCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 6,
+    },
+    syncCardText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    syncCardMeta: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
     button: {
       paddingVertical: 14,
       paddingHorizontal: 32,
@@ -455,6 +625,16 @@ const makeStyles = (colors: AppColors) =>
     },
     buttonText: {
       color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    secondaryButton: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.brand.primary,
+    },
+    secondaryButtonText: {
+      color: colors.brand.primary,
       fontSize: 16,
       fontWeight: '700',
     },
